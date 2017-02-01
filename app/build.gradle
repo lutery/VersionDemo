@@ -1,0 +1,93 @@
+apply plugin: 'com.android.application'
+
+def getVersionCode() {
+    def versionFile = file('version.properties');
+
+    if (versionFile.exists()){
+        def Properties versionProps = new Properties();
+        versionProps.load(new FileInputStream(versionFile));
+        def versionCode = versionProps['VERSION_CODE'].toInteger();
+        println("Current version code is " + versionCode.toString());
+        return versionCode;
+    }
+    else{
+        return 1;
+    }
+}
+
+def updateVersionCode(){
+    println('updateVersionCode')
+    def runTasks = gradle.startParameter.taskNames
+
+//    if (!('assemble' in runTasks || 'assembleRelease' in runTasks || 'aR' in runTasks)) {
+//        return
+//    }
+
+    def File versionFile = file('version.properties')
+
+    if (versionFile.exists()) {
+        def Properties versionProps = new Properties()
+        versionProps.load(new FileInputStream(versionFile))
+        def currentVersionCode = versionProps['VERSION_CODE'].toInteger()
+        currentVersionCode++
+        versionProps['VERSION_CODE'] = currentVersionCode.toString()
+        versionProps.store(versionFile.newWriter(), null)
+        println('Updated version code to ' + currentVersionCode.toString())
+    } else {
+        throw new GradleException("Could not find version.properties!")
+    }
+}
+
+def getVersionName(){
+    def versionFile = file('version.properties');
+
+    if (versionFile.exists()){
+        def Properties versionProps = new Properties();
+        versionProps.load(new FileInputStream(versionFile));
+        def versionName = versionProps['VERSION_NAME'].toString();
+        println("Current version name is " + versionName);
+        return versionName;
+    }
+    else{
+        return "0.0.0";
+    }
+}
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "25.0.0"
+
+    def currentVersionCode = getVersionCode()
+    def currentVersionName = getVersionName()
+
+    defaultConfig {
+        applicationId "chchy.one.versiondemo"
+        minSdkVersion 15
+        targetSdkVersion 25
+        versionCode currentVersionCode
+        versionName currentVersionName
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    android.applicationVariants.all{
+        variant -> variant.outputs.each {
+            output -> output.outputFile = new File(output.outputFile.parent, "VersionDemo-V"+defaultConfig.versionName+"-"+buildType.name+".apk");
+                updateVersionCode();
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:25.1.0'
+    compile 'com.android.support:design:25.1.0'
+    testCompile 'junit:junit:4.12'
+}
